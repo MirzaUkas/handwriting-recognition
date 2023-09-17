@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "794581989817",
+    "project_id": "belajar-menulis-d9327",
+    "storage_bucket": "belajar-menulis-d9327.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:794581989817:android:d71a08aa54c08d83835e68",
+        "android_client_info": {
+          "package_name": "com.mirz.handwriting"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "794581989817-cv7qu31d9kvihf75utqili1qd614nun7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEiqDgaQVJzfL5u46_ets75iew6b_SYew"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "794581989817-cv7qu31d9kvihf75utqili1qd614nun7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

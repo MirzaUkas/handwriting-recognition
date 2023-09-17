@@ -8,20 +8,22 @@ import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColors(
+private val darkColorScheme = darkColors(
     primary = Purple80,
     secondary = PurpleGrey80,
-//    tertiary = Pink80
+    background = Color.White,
 )
 
-private val LightColorScheme = lightColors(
+private val lightColorScheme = lightColors(
     primary = Purple40,
     secondary = PurpleGrey40,
+    background = Color.White,
 //    tertiary = Pink40
 
     /* Other default colors to override
@@ -48,8 +50,8 @@ fun HandwritingTheme(
 //            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
 //        }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> darkColorScheme
+        else -> lightColorScheme
     }
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -62,7 +64,7 @@ fun HandwritingTheme(
 
     MaterialTheme(
         colors = colorScheme,
-        typography = Typography,
+        typography = typography,
         content = content
     )
 }

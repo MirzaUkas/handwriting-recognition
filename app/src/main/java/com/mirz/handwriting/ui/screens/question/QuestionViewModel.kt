@@ -1,18 +1,16 @@
-package com.mirz.handwriting
+package com.mirz.handwriting.ui.screens.question
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.digitalink.WritingArea
 import com.mirz.handwriting.common.DrawEvent
 import com.mirz.handwriting.common.MLKitModelStatus
-import com.mirz.handwriting.common.SingleFlowViewModel
 import com.mirz.handwriting.data.DigitalInkProvider
+import com.mirz.handwriting.domain.entities.QuestionEntity
+import com.mirz.handwriting.domain.repository.QuestionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,24 +24,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class MainViewModel @Inject constructor(
+class QuestionViewModel @Inject constructor(
     private val digitalInkProvider: DigitalInkProvider,
-) : ViewModel(), DigitalInkViewModel {
-
-    private var finishRecordingJob: Job? = null
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val _digitalInkModelStatus = digitalInkProvider.checkIfModelIsDownloaded()
-        .flatMapLatest { status ->
-            if (status == MLKitModelStatus.Downloaded)
-                flowOf(status)
-            else
-                digitalInkProvider.downloadModel()
-        }
-        .stateIn(viewModelScope, SharingStarted.Lazily, MLKitModelStatus.NotDownloaded)
-
-//    private val _translatorModelStatus = translatorProvider.checkIfModelIsDownloaded()
-//        .stateIn(viewModelScope, SharingStarted.Lazily, MLKitModelStatus.NotDownloaded)
+    private val questionRepository: QuestionRepository,
+) : ViewModel() {
+    private val _finalText = MutableStateFlow("")
+    private val _resetCanvas = MutableStateFlow(false)
+    private val _pos = MutableStateFlow(0)
+    private val _question = MutableStateFlow(QuestionEntity())
 
     private val _predictions = digitalInkProvider.predictions
         .consumeAsFlow()
@@ -55,50 +43,53 @@ class MainViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-//    private val _translation = translatorProvider.translation
-//        .consumeAsFlow()
-//        .stateIn(viewModelScope, SharingStarted.Lazily, "")
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val _digitalInkModelStatus = digitalInkProvider.checkIfModelIsDownloaded()
+        .flatMapLatest { status ->
+            if (status == MLKitModelStatus.Downloaded)
+                flowOf(status)
+            else
+                digitalInkProvider.downloadModel()
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, MLKitModelStatus.NotDownloaded)
 
-    private val _finalText = MutableStateFlow<String>("")
-    private val _resetCanvas = MutableStateFlow<Boolean>(false)
 
-
-    override val state: StateFlow<DigitalInkViewModel.State>
+    val uiState: StateFlow<QuestionUiState>
         get() = combine(
             _digitalInkModelStatus,
-//    _translatorModelStatus,
             _resetCanvas,
             _predictions,
-//    _translation,
-            _finalText
+            _finalText,
+            _pos,
+            _question,
         ) { result ->
             val digitalInkModelStatus = result[0] as MLKitModelStatus
-//        val translatorModelStatus = result[1] as MLKitModelStatus
             val resetCanvas = result[1] as Boolean
             val predictions = result[2] as List<String>
-//        val translation = result[4] as String
             val finalText = result[3] as String
+            val pos = result[4] as Int
+            val question = result[5] as QuestionEntity
             val areModelsDownloaded = digitalInkModelStatus == MLKitModelStatus.Downloaded
-//                && translatorModelStatus == MLKitModelStatus.Downloaded
-
-            DigitalInkViewModel.State(
-                resetCanvas = resetCanvas,
+            QuestionUiState(
                 showModelStatusProgress = !areModelsDownloaded,
+                resetCanvas = resetCanvas,
+                predictions = predictions,
                 finalText = finalText,
-//            translation = translation,
-                predictions = predictions
+                question = question,
+                pos = pos,
             )
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, DigitalInkViewModel.State())
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, QuestionUiState())
 
-    override fun onEvent(event: DigitalInkViewModel.Event) {
+    private var finishRecordingJob: Job? = null
+
+
+    fun onDrawEvent(event: Event) {
         when (event) {
-            is DigitalInkViewModel.Event.Pointer -> {
-
+            is Event.Pointer -> {
                 when (val drawEvent = event.event) {
                     is DrawEvent.Down -> {
                         this.finishRecordingJob?.cancel()
                         _resetCanvas.value = false
-
                         digitalInkProvider.record(drawEvent.x, drawEvent.y)
                     }
 
@@ -116,16 +107,15 @@ class MainViewModel @Inject constructor(
                 }
             }
 
-            is DigitalInkViewModel.Event.OnStop -> {
+            is Event.OnStop -> {
                 digitalInkProvider.close()
-//                translatorProvider.close()
             }
 
-            is DigitalInkViewModel.Event.TextChanged -> {
+            is Event.TextChanged -> {
                 setFinalText(event.text)
             }
 
-            is DigitalInkViewModel.Event.PredictionSelected -> {
+            is Event.PredictionSelected -> {
                 setFinalText(text = _finalText.value.dropLast(1).plus(event.prediction))
             }
         }
@@ -141,46 +131,33 @@ class MainViewModel @Inject constructor(
 
     fun submit(writingArea: WritingArea) {
         this.finishRecordingJob = viewModelScope.launch {
-//            _resetCanvas.value = true
+            _resetCanvas.value = true
+            _finalText.value = ""
             digitalInkProvider.finishRecording(writingArea, "")
         }
     }
 
-    private fun setFinalText(text: String) {
+    fun setQuestionData(question: QuestionEntity) = viewModelScope.launch {
+        _question.value = question
+    }
+
+    private fun setFinalText(text: String) = viewModelScope.launch {
         _finalText.value = text
+        val question = _question.value
 
-//        if (text.isNotEmpty())
-//            translatorProvider.translate(text)
-    }
-
-}
-
-
-interface DigitalInkViewModel :
-    SingleFlowViewModel<DigitalInkViewModel.Event, DigitalInkViewModel.State> {
-
-    data class State(
-        val resetCanvas: Boolean = false,
-        val showModelStatusProgress: Boolean = false,
-        val finalText: String = "",
-        val translation: String = "",
-        val predictions: List<String> = emptyList(),
-    )
-
-    sealed class Event {
-        data class TextChanged(val text: String) : Event()
-        data class Pointer(val event: DrawEvent) : Event()
-        data class PredictionSelected(val prediction: String) : Event()
-
-        object OnStop : Event()
+        questionRepository.submitQuestion(
+            id = question.questionId.toString(),
+            pos = question.id ?: -1,
+            answer = text
+        )
     }
 }
 
 
-//val LocalDigitalInkViewModel = compositionLocalOf<DigitalInkViewModel> {
-//    error("LocalDigitalViewModelFactory not provided")
-//}
-//
-//@Composable
-//fun provideDigitalInkViewModel(viewModelFactory: @Composable () -> DigitalInkViewModel)
-//        = LocalDigitalInkViewModel provides viewModelFactory.invoke()
+sealed class Event {
+    data class TextChanged(val text: String) : Event()
+    data class Pointer(val event: DrawEvent) : Event()
+    data class PredictionSelected(val prediction: String) : Event()
+
+    object OnStop : Event()
+}

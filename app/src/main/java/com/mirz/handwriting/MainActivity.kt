@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,24 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.LocalTextStyle
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,10 +31,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.google.mlkit.vision.digitalink.WritingArea
+import com.mirz.handwriting.common.AutoSizeText
 import com.mirz.handwriting.common.DrawEvent
 import com.mirz.handwriting.common.DrawSpace
 import com.mirz.handwriting.common.use
+import com.mirz.handwriting.navigation.MainNavGraph
 import com.mirz.handwriting.ui.theme.HandwritingTheme
+import com.mirz.handwriting.ui.theme.dashedFamily
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -52,25 +47,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             HandwritingTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background
-                ) {
-                    DigitalInkScreen(Modifier.fillMaxSize())
-                }
+                MainNavGraph()
             }
         }
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 fun MainContent(
     state: DigitalInkViewModel.State,
     onDrawEvent: (DrawEvent) -> Unit,
-    onClearCanvas: () -> Unit,
-    onSubmit: () -> Unit,
+    onClearCanvas: (WritingArea) -> Unit,
+    onSubmit: (WritingArea) -> Unit,
 ) {
+
+    val configuration = LocalConfiguration.current
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -97,26 +88,24 @@ fun MainContent(
                     .border(BorderStroke(1.dp, Color.Red))
                     .align(Alignment.Center)
             )
-
-            Text(
-                text = "Hello",
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(100.dp)
                     .padding(horizontal = 16.dp)
                     .align(Alignment.Center),
-                textAlign = TextAlign.Center,
-                style = LocalTextStyle.current.merge(
-                    TextStyle(
-                        color = Color(0xFFF67C37), fontSize = 80.sp, drawStyle = Stroke(
-                            width = 1f,
-                            join = StrokeJoin.Round,
-                            pathEffect = PathEffect.dashPathEffect(
-                                intervals = floatArrayOf(10f, 5f), phase = 0f
-                            )
-                        )
+            ) {
+                AutoSizeText(
+                    text = "SEPEDA",
+                    fontSize = 100.sp,
+                    textAlign = TextAlign.Center,
+                    fontFamily = dashedFamily,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .align(Alignment.Center),
+
                     )
-                ),
-            )
+            }
 
 
             Row(
@@ -128,13 +117,27 @@ fun MainContent(
             ) {
                 Button(
                     modifier = Modifier.weight(0.5f),
-                    onClick = onClearCanvas,
+                    onClick = {
+                        onClearCanvas(
+                            WritingArea(
+                                configuration.screenWidthDp.dp.value,
+                                100.dp.value,
+                            )
+                        )
+                    },
                 ) {
                     Text("Clear")
                 }
                 Button(
                     modifier = Modifier.weight(0.5f),
-                    onClick = onSubmit,
+                    onClick = {
+                        onSubmit(
+                            WritingArea(
+                                configuration.screenWidthDp.dp.value,
+                                100.dp.value,
+                            )
+                        )
+                    },
                 ) {
                     Text("Submit")
                 }

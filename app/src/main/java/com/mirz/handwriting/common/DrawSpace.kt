@@ -16,6 +16,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import kotlin.math.abs
 
+
 sealed class DrawEvent {
     data class Down(val x: Float, val y: Float): DrawEvent()
     data class Move(val x: Float, val y: Float): DrawEvent()

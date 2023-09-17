@@ -3,11 +3,13 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
+    id("com.google.gms.google-services")
+    id("kotlin-parcelize")
 }
 
 android {
     namespace = "com.mirz.handwriting"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.mirz.handwriting"
@@ -54,11 +56,15 @@ android {
 dependencies {
     // Core Android
     implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
+    implementation("androidx.fragment:fragment-ktx:1.6.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+    implementation("androidx.savedstate:savedstate-ktx:1.2.1")
 
     // Compose
     implementation("androidx.activity:activity-compose:1.7.2")
+    implementation("androidx.navigation:navigation-compose:2.7.2")
     implementation(platform("androidx.compose:compose-bom:2023.03.00"))
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -67,10 +73,20 @@ dependencies {
     // ML Kit
     implementation("com.google.mlkit:digital-ink-recognition:18.1.0")
 
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:32.2.3"))
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
+
     // DI
     implementation("com.google.dagger:hilt-android:2.44")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
     kapt("com.google.dagger:hilt-android-compiler:2.44")
+
+    // Networking
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+
 
     // Test Libs
     testImplementation("junit:junit:4.13.2")

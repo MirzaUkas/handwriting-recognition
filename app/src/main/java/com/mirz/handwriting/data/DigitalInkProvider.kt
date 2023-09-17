@@ -7,6 +7,8 @@ import com.google.mlkit.vision.digitalink.DigitalInkRecognitionModel
 import com.google.mlkit.vision.digitalink.DigitalInkRecognitionModelIdentifier
 import com.google.mlkit.vision.digitalink.DigitalInkRecognizerOptions
 import com.google.mlkit.vision.digitalink.Ink
+import com.google.mlkit.vision.digitalink.RecognitionContext
+import com.google.mlkit.vision.digitalink.WritingArea
 import com.mirz.handwriting.common.MLKitModelStatus
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
@@ -15,15 +17,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
 
-class DigitalInkProviderImpl @Inject constructor(): DigitalInkProvider {
+class DigitalInkProviderImpl @Inject constructor() : DigitalInkProvider {
 
     override val predictions = Channel<List<String>>(4)
 
     private var strokeBuilder: Ink.Stroke.Builder = Ink.Stroke.builder()
 
     private val recognitionModel = DigitalInkRecognitionModel
-            .builder(DigitalInkRecognitionModelIdentifier.ID)
-            .build()
+        .builder(DigitalInkRecognitionModelIdentifier.ID)
+        .build()
 
     private val remoteModelManager = RemoteModelManager.getInstance()
 
@@ -77,13 +79,16 @@ class DigitalInkProviderImpl @Inject constructor(): DigitalInkProvider {
         this.strokeBuilder.addPoint(point)
     }
 
-    override fun finishRecording() {
+    override fun finishRecording(writingArea: WritingArea, preContext: String) {
         val stroke = this.strokeBuilder.build()
+        val recognitionContext = RecognitionContext.builder()
+            .setWritingArea(writingArea).setPreContext(preContext)
+
 
         val inkBuilder = Ink.builder()
         inkBuilder.addStroke(stroke)
 
-        this.recognizer.recognize(inkBuilder.build())
+        this.recognizer.recognize(inkBuilder.build(), recognitionContext.build())
             .addOnCompleteListener {
                 this.strokeBuilder = Ink.Stroke.builder()
             }
@@ -100,7 +105,7 @@ interface DigitalInkProvider {
 
     val predictions: Channel<List<String>>
 
-    fun finishRecording()
+    fun finishRecording(writingArea: WritingArea, preContext: String)
     fun record(x: Float, y: Float)
 
     fun downloadModel(): Flow<MLKitModelStatus>
