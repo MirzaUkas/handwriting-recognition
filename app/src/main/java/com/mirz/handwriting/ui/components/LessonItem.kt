@@ -47,7 +47,7 @@ fun LessonItem(
                     1 -> Color(0xFF686BFF)
                     2 -> Color(0xFFEE97BC)
                     3 -> Color(0xFF7ADAAB)
-                    else -> Color.White
+                    else -> Color(0xFF466CFF)
                 }
             ),
             verticalAlignment = Alignment.Bottom,

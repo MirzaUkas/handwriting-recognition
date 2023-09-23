@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.digitalink.WritingArea
 import com.mirz.handwriting.common.DrawEvent
 import com.mirz.handwriting.common.MLKitModelStatus
-import com.mirz.handwriting.data.DigitalInkProvider
+import com.mirz.handwriting.common.Response
+import com.mirz.handwriting.common.SingleFlowViewModel
 import com.mirz.handwriting.domain.entities.QuestionEntity
+import com.mirz.handwriting.domain.repository.MLKitRepository
 import com.mirz.handwriting.domain.repository.QuestionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,17 +25,20 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class QuestionViewModel @Inject constructor(
-    private val digitalInkProvider: DigitalInkProvider,
+    private val mlKitRepository: MLKitRepository,
     private val questionRepository: QuestionRepository,
-) : ViewModel() {
+) : ViewModel(), DigitalInkViewModel {
+
     private val _finalText = MutableStateFlow("")
     private val _resetCanvas = MutableStateFlow(false)
     private val _pos = MutableStateFlow(0)
     private val _question = MutableStateFlow(QuestionEntity())
+    private val _submitResponse = MutableStateFlow(QuestionUiState().submitReportResponse)
 
-    private val _predictions = digitalInkProvider.predictions
+    private val _predictions = mlKitRepository.predictions
         .consumeAsFlow()
         .onEach {
             if (it.isEmpty())
@@ -44,17 +49,16 @@ class QuestionViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val _digitalInkModelStatus = digitalInkProvider.checkIfModelIsDownloaded()
+    private val _digitalInkModelStatus = mlKitRepository.checkIfModelIsDownloaded()
         .flatMapLatest { status ->
             if (status == MLKitModelStatus.Downloaded)
                 flowOf(status)
             else
-                digitalInkProvider.downloadModel()
+                mlKitRepository.downloadModel()
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, MLKitModelStatus.NotDownloaded)
 
-
-    val uiState: StateFlow<QuestionUiState>
+    override val state: StateFlow<QuestionUiState>
         get() = combine(
             _digitalInkModelStatus,
             _resetCanvas,
@@ -62,6 +66,7 @@ class QuestionViewModel @Inject constructor(
             _finalText,
             _pos,
             _question,
+            _submitResponse,
         ) { result ->
             val digitalInkModelStatus = result[0] as MLKitModelStatus
             val resetCanvas = result[1] as Boolean
@@ -69,6 +74,7 @@ class QuestionViewModel @Inject constructor(
             val finalText = result[3] as String
             val pos = result[4] as Int
             val question = result[5] as QuestionEntity
+            val submitResponse = result[6] as Response<Any>
             val areModelsDownloaded = digitalInkModelStatus == MLKitModelStatus.Downloaded
             QuestionUiState(
                 showModelStatusProgress = !areModelsDownloaded,
@@ -77,55 +83,19 @@ class QuestionViewModel @Inject constructor(
                 finalText = finalText,
                 question = question,
                 pos = pos,
+                submitReportResponse = submitResponse,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, QuestionUiState())
 
+
     private var finishRecordingJob: Job? = null
 
-
-    fun onDrawEvent(event: Event) {
-        when (event) {
-            is Event.Pointer -> {
-                when (val drawEvent = event.event) {
-                    is DrawEvent.Down -> {
-                        this.finishRecordingJob?.cancel()
-                        _resetCanvas.value = false
-                        digitalInkProvider.record(drawEvent.x, drawEvent.y)
-                    }
-
-                    is DrawEvent.Move -> {
-                        digitalInkProvider.record(drawEvent.x, drawEvent.y)
-                    }
-
-                    is DrawEvent.Up -> {
-//                        this.finishRecordingJob = viewModelScope.launch {
-//                            delay(DEBOUNCE_INTERVAL)
-//                            _resetCanvas.value = true
-//                            digitalInkProvider.finishRecording()
-//                        }
-                    }
-                }
-            }
-
-            is Event.OnStop -> {
-                digitalInkProvider.close()
-            }
-
-            is Event.TextChanged -> {
-                setFinalText(event.text)
-            }
-
-            is Event.PredictionSelected -> {
-                setFinalText(text = _finalText.value.dropLast(1).plus(event.prediction))
-            }
-        }
-    }
 
     fun clearCanvas(writingArea: WritingArea) {
         this.finishRecordingJob = viewModelScope.launch {
             _resetCanvas.value = true
             _finalText.value = ""
-            digitalInkProvider.finishRecording(writingArea, "")
+            mlKitRepository.finishRecording(writingArea, "")
         }
     }
 
@@ -133,7 +103,7 @@ class QuestionViewModel @Inject constructor(
         this.finishRecordingJob = viewModelScope.launch {
             _resetCanvas.value = true
             _finalText.value = ""
-            digitalInkProvider.finishRecording(writingArea, "")
+            mlKitRepository.finishRecording(writingArea, "")
         }
     }
 
@@ -143,21 +113,70 @@ class QuestionViewModel @Inject constructor(
 
     private fun setFinalText(text: String) = viewModelScope.launch {
         _finalText.value = text
+    }
+
+    fun onSubmitReport() = viewModelScope.launch {
         val question = _question.value
 
-        questionRepository.submitQuestion(
+       val response = questionRepository.submitQuestion(
             id = question.questionId.toString(),
             pos = question.id ?: -1,
-            answer = text
+            correct = question.question == _finalText.value,
+            answer = _finalText.value
         )
+        _submitResponse.value = response
+    }
+    
+    override fun onEvent(event: DigitalInkViewModel.Event) {
+        when (event) {
+            is DigitalInkViewModel.Event.Pointer -> {
+                when (val drawEvent = event.event) {
+                    is DrawEvent.Down -> {
+                        this.finishRecordingJob?.cancel()
+                        _resetCanvas.value = false
+                        mlKitRepository.record(drawEvent.x, drawEvent.y)
+                    }
+
+                    is DrawEvent.Move -> {
+                        mlKitRepository.record(drawEvent.x, drawEvent.y)
+                    }
+
+                    is DrawEvent.Up -> {
+//                        this.finishRecordingJob = viewModelScope.launch {
+//                            delay(DEBOUNCE_INTERVAL)
+//                            _resetCanvas.value = true
+//                            mlKitRepository.finishRecording()
+//                        }
+                    }
+                }
+            }
+
+            is DigitalInkViewModel.Event.OnStop -> {
+                mlKitRepository.close()
+            }
+
+            is DigitalInkViewModel.Event.TextChanged -> {
+                setFinalText(event.text)
+            }
+
+            is DigitalInkViewModel.Event.PredictionSelected -> {
+                setFinalText(text = _finalText.value.dropLast(1).plus(event.prediction))
+            }
+        }
+    }
+
+}
+
+
+interface DigitalInkViewModel :
+    SingleFlowViewModel<DigitalInkViewModel.Event, QuestionUiState> {
+
+    sealed class Event {
+        data class TextChanged(val text: String) : Event()
+        data class Pointer(val event: DrawEvent) : Event()
+        data class PredictionSelected(val prediction: String) : Event()
+
+        object OnStop : Event()
     }
 }
 
-
-sealed class Event {
-    data class TextChanged(val text: String) : Event()
-    data class Pointer(val event: DrawEvent) : Event()
-    data class PredictionSelected(val prediction: String) : Event()
-
-    object OnStop : Event()
-}

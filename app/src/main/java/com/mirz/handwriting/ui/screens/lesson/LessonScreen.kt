@@ -85,6 +85,7 @@ fun LessonScreen(
         Column(
             modifier = Modifier
                 .padding(it)
+                .fillMaxSize()
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -93,7 +94,8 @@ fun LessonScreen(
                     LessonSection(
                         name = data.data?.title.orEmpty(),
                         level = data.data?.level ?: 0,
-                        answered = 0,
+                        answered = data.data?.items?.filter { question ->
+                            !question.lastAnswer.isNullOrEmpty() }?.size ?: 0,
                         questions = data.data?.items?.size ?: 0,
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -101,7 +103,7 @@ fun LessonScreen(
                         QuestionItem(
                             title = "Pertanyaan ${index + 1}",
                             desc = item.question.orEmpty(),
-                            isAnswered = false,
+                            isAnswered = !item.lastAnswer.isNullOrEmpty(),
                             isLastItem = index == (data.data.items.size - 1),
                             onClick = {
                                 navigateToQuestion(item.copy(id = index, questionId = data.data.id))
@@ -133,7 +135,7 @@ fun LessonSection(
                     1 -> Color(0xFF686BFF)
                     2 -> Color(0xFFEE97BC)
                     3 -> Color(0xFF7ADAAB)
-                    else -> Color.White
+                    else -> Color(0xFF466CFF)
                 }
             ),
             verticalAlignment = Alignment.Top,
@@ -255,7 +257,7 @@ fun QuestionItem(
                     modifier = Modifier
                         .height(24.dp)
                         .width(6.dp)
-                        .background(Color(0xFFEEF0F7))
+                        .background(if (isAnswered) Color(0xFFCDF7E3) else Color(0xFFEEF0F7))
                         .align(Alignment.Center)
                 )
             }

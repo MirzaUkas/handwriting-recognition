@@ -34,7 +34,6 @@ import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,10 +48,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.google.mlkit.vision.digitalink.WritingArea
-import com.mirz.handwriting.ModelStatusProgress
 import com.mirz.handwriting.R
 import com.mirz.handwriting.common.AutoSizeText
 import com.mirz.handwriting.common.DrawSpace
+import com.mirz.handwriting.common.Response
+import com.mirz.handwriting.common.use
+import com.mirz.handwriting.ui.components.ModelStatusProgress
 import com.mirz.handwriting.ui.theme.Grey7F
 import com.mirz.handwriting.ui.theme.dashedFamily
 import com.mirz.handwriting.ui.theme.typography
@@ -64,7 +65,6 @@ fun QuestionScreen(
     viewModel: QuestionViewModel = hiltViewModel(),
     navigateBack: () -> Unit
 ) {
-    val state = viewModel.uiState.collectAsState().value
     val lifecycleOwner = LocalLifecycleOwner.current
     val configuration = LocalConfiguration.current
     val coroutineScope = rememberCoroutineScope()
@@ -73,11 +73,11 @@ fun QuestionScreen(
         confirmValueChange = { it != ModalBottomSheetValue.HalfExpanded },
         skipHalfExpanded = false
     )
-
+    val (state, event) = use(viewModel, QuestionUiState())
 
     DisposableEffect(Unit) {
         val lifecycleObserver = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) viewModel.onDrawEvent(Event.OnStop)
+            if (event == Lifecycle.Event.ON_STOP) event(DigitalInkViewModel.Event.OnStop)
         }
 
         lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
@@ -90,7 +90,15 @@ fun QuestionScreen(
     }
 
     LaunchedEffect(state.finalText) {
-        if (state.finalText.isNotEmpty()) coroutineScope.launch { modalSheetState.show() }
+        if (state.finalText.isNotEmpty())
+            viewModel.onSubmitReport()
+    }
+
+    LaunchedEffect(state.submitReportResponse){
+        when(state.submitReportResponse){
+            is Response.Success -> coroutineScope.launch { modalSheetState.show() }
+            else -> Unit
+        }
     }
 
 
@@ -136,7 +144,7 @@ fun QuestionScreen(
                     DrawSpace(
                         reset = state.resetCanvas,
                         onDrawEvent = { event ->
-                            viewModel.onDrawEvent(Event.Pointer(event))
+                            event(DigitalInkViewModel.Event.Pointer(event))
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -228,7 +236,7 @@ fun QuestionScreen(
                             .padding(vertical = 6.dp, horizontal = 16.dp)
                             .align(Alignment.TopCenter)
                     ) {
-                        Text(text = "Question 1", color = Color.White, style = typography.body1)
+                        Text(text = "Pertanyaan ${state.pos + 1}", color = Color.White, style = typography.body1)
                     }
                 }
 
