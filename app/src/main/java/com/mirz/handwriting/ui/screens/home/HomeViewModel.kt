@@ -8,6 +8,7 @@ import com.mirz.handwriting.domain.repository.AuthRepository
 import com.mirz.handwriting.domain.repository.LessonRepository
 import com.mirz.handwriting.ui.screens.login.LoginUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,6 +23,7 @@ class HomeViewModel @Inject constructor(private val repository: LessonRepository
     }
 
     private fun getLessons()  = viewModelScope.launch {
+        uiState.value = uiState.value.copy(resultLessons = Response.Loading)
         val result = repository.getLessons()
         uiState.value = uiState.value.copy(resultLessons = result)
     }

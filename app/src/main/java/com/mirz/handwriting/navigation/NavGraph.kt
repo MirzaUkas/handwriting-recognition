@@ -1,12 +1,17 @@
 package com.mirz.handwriting.navigation
 
+import android.util.Log
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mirz.handwriting.common.parcelable
@@ -14,6 +19,7 @@ import com.mirz.handwriting.domain.entities.QuestionEntity
 import com.mirz.handwriting.ui.screens.home.HomeScreen
 import com.mirz.handwriting.ui.screens.lesson.LessonScreen
 import com.mirz.handwriting.ui.screens.login.LoginScreen
+import com.mirz.handwriting.ui.screens.profile.ProfileScreen
 import com.mirz.handwriting.ui.screens.question.QuestionScreen
 import com.mirz.handwriting.ui.screens.question.QuestionViewModel
 import com.mirz.handwriting.ui.screens.splash.SplashScreen
@@ -24,7 +30,11 @@ fun MainNavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screens.Splash,
 ) {
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination,
+    ) {
+
         composable(Screens.Splash) {
             SplashScreen(
                 navigateToHome = {
@@ -35,6 +45,19 @@ fun MainNavGraph(
                 },
             )
         }
+        composable(Screens.Profile) {
+            ProfileScreen(
+                navController = navController,
+            )
+        }
+        composable(Screens.Home) {
+            HomeScreen(
+                navController = navController,
+                navigateToLesson = { id ->
+                    navController.navigate("${Screens.Lesson}/$id")
+                }
+            )
+        }
         composable(Screens.Login) {
             LoginScreen(
                 navigateToHome = {
@@ -42,13 +65,7 @@ fun MainNavGraph(
                 }
             )
         }
-        composable(Screens.Home) {
-            HomeScreen(
-                navigateToLesson = { id ->
-                    navController.navigate("${Screens.Lesson}/$id")
-                }
-            )
-        }
+
         composable(
             route = "${Screens.Lesson}/{id}",
             arguments = listOf(

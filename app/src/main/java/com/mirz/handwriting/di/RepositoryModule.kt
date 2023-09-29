@@ -26,8 +26,10 @@ class RepositoryModule {
     @Provides
     fun provideAuthRepository(
         auth: FirebaseAuth,
+        firestore: FirebaseFirestore
     ): AuthRepository = AuthRepositoryImpl(
-        auth = auth
+        auth = auth,
+        firestore = firestore
     )
 
     @Provides

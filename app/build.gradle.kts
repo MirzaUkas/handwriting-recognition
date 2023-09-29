@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
     id("kotlin-parcelize")
 }
 
@@ -77,6 +78,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.2.3"))
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
 
     // DI
     implementation("com.google.dagger:hilt-android:2.44")

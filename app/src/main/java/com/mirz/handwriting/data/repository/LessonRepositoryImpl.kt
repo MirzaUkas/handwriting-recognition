@@ -8,6 +8,7 @@ import com.mirz.handwriting.common.Response
 import com.mirz.handwriting.domain.entities.LessonEntity
 import com.mirz.handwriting.domain.entities.ReportEntity
 import com.mirz.handwriting.domain.repository.LessonRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
@@ -30,7 +31,6 @@ class LessonRepositoryImpl @Inject constructor(
 
     override suspend fun getLesson(id: String): Response<LessonEntity> {
         val response: Response<LessonEntity> = try {
-            Response.Loading
             val answers = mutableListOf<HashMap<String, Any>>()
             auth.uid?.let {
                 firestore.collection("report").document(it).collection("answered_question")
@@ -48,17 +48,10 @@ class LessonRepositoryImpl @Inject constructor(
             items.forEachIndexed { questionIndex, question ->//0 //1
                 answers.forEachIndexed { answerIndex, hashMap ->//00//01 /10//11
                     if (questionIndex == answerIndex) {
-                        Log.e(
-                            "HERE",
-                            " ans: ${hashMap["answer"]}| $questionIndex - $answerIndex"
-                        )
                         items[questionIndex] = question.copy(lastAnswer = hashMap["answer"]?.toString())
                     }
                 }
             }
-
-            Log.e("HERE", "items: ${items.map { it.lastAnswer }}")
-
             Response.Success(res?.copy(id = id, items = items))
         } catch (e: FirebaseFirestoreException) {
             Response.Failure(e)

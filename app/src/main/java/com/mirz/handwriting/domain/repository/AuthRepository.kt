@@ -1,8 +1,9 @@
 package com.mirz.handwriting.domain.repository
 
 import com.mirz.handwriting.common.Response
+import com.mirz.handwriting.domain.entities.UserEntity
 
-typealias SignInWithGoogleResponse = Response<Boolean>
+typealias SignInWithGoogleResponse = Response<UserEntity>
 
 interface AuthRepository {
     val isUserAuthenticatedInFirebase: Boolean

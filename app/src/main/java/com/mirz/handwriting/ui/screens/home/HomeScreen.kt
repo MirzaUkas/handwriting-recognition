@@ -3,6 +3,9 @@ package com.mirz.handwriting.ui.screens.home
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -40,9 +43,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.mirz.handwriting.R
 import com.mirz.handwriting.common.Response
+import com.mirz.handwriting.navigation.BottomNav
+import com.mirz.handwriting.navigation.Screens
 import com.mirz.handwriting.ui.components.LessonItem
+import com.mirz.handwriting.ui.components.LessonShimmer
 import com.mirz.handwriting.ui.theme.HandwritingTheme
 import com.mirz.handwriting.ui.theme.NeutralGrey
 import com.mirz.handwriting.ui.theme.PurpleGrey40
@@ -52,11 +60,22 @@ import com.mirz.handwriting.ui.theme.typography
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
+    navController: NavController = rememberNavController(),
     navigateToLesson: (String) -> Unit
 ) {
     val uiState by viewModel.uiState
 
-    Scaffold {
+    Scaffold(
+        bottomBar = {
+            AnimatedVisibility(
+                visible = true,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it }),
+            ) {
+                BottomNav(navController)
+            }
+        }
+    ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
@@ -86,6 +105,10 @@ fun HomeScreen(
                 )
 
             }
+
+            LaunchedEffect(uiState.resultLessons){
+                Log.e("HERE", "RES: ${uiState.resultLessons}")
+            }
             when (val data = uiState.resultLessons) {
                 is Response.Success -> {
                     data.data?.let { lessons ->
@@ -105,6 +128,12 @@ fun HomeScreen(
                     }
                 }
 
+                is Response.Loading -> {
+                    LessonShimmer()
+                    LessonShimmer()
+                    LessonShimmer()
+                }
+
                 is Response.Failure -> Toast.makeText(
                     LocalContext.current,
                     data.e.localizedMessage,
@@ -116,19 +145,6 @@ fun HomeScreen(
 
         }
     }
-
-    if (uiState.resultLessons is Response.Loading)
-        Box(modifier = Modifier.fillMaxSize()) {
-            CircularProgressIndicator(
-                backgroundColor = colors.primary,
-                modifier = Modifier
-                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(8.dp))
-                    .background(color = Color.White, shape = RoundedCornerShape(8.dp))
-                    .padding(16.dp)
-            )
-        }
-
-
 }
 
 

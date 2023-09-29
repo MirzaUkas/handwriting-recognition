@@ -1,6 +1,5 @@
 package com.mirz.handwriting.ui.screens.login
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -25,7 +23,6 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme.colors
 import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.ProgressIndicatorDefaults
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldDefaults
@@ -43,12 +40,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mirz.handwriting.R
 import com.mirz.handwriting.common.Response
-import com.mirz.handwriting.ui.theme.HandwritingTheme
 import com.mirz.handwriting.ui.theme.NeutralGrey
 import com.mirz.handwriting.ui.theme.Purple30
 import com.mirz.handwriting.ui.theme.Purple40
@@ -60,7 +55,7 @@ fun LoginScreen(
     navigateToHome: () -> Unit,
 ) {
     val uiState by viewModel.uiState
-
+    val context = LocalContext.current
     Surface(
         color = Purple40
     ) {
@@ -177,7 +172,7 @@ fun LoginScreen(
                 )
 
                 is Response.Failure -> Toast.makeText(
-                    LocalContext.current,
+                    context,
                     data.e.localizedMessage,
                     Toast.LENGTH_SHORT
                 ).show()

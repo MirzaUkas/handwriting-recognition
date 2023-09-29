@@ -11,6 +11,7 @@ object Screens {
     const val Login = "login"
     const val Lesson = "lessons"
     const val Question = "question"
+    const val Profile = "profile"
 }
 
 fun NavController.navigateToQuestion(questionEntity: QuestionEntity) {
