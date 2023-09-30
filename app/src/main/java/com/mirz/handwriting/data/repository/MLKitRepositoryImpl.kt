@@ -9,7 +9,6 @@ import com.google.mlkit.vision.digitalink.Ink
 import com.google.mlkit.vision.digitalink.RecognitionContext
 import com.google.mlkit.vision.digitalink.WritingArea
 import com.mirz.handwriting.common.MLKitModelStatus
-import com.mirz.handwriting.data.DigitalInkProvider
 import com.mirz.handwriting.domain.repository.MLKitRepository
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
@@ -79,9 +78,9 @@ class MLKitRepositoryImpl @Inject constructor(
         val recognitionContext = RecognitionContext.builder()
             .setWritingArea(writingArea).setPreContext(preContext)
 
-
         val inkBuilder = Ink.builder()
         inkBuilder.addStroke(stroke)
+
         try {
             recognizer.recognize(inkBuilder.build(), recognitionContext.build())
                 .addOnCompleteListener {
@@ -96,7 +95,6 @@ class MLKitRepositoryImpl @Inject constructor(
     }
 
     override fun close() {
-        Log.e("HERE", "closed")
         this.recognizer.close()
     }
 }

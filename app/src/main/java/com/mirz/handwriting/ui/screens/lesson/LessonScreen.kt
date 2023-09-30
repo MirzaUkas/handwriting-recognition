@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -95,7 +96,8 @@ fun LessonScreen(
                         name = data.data?.title.orEmpty(),
                         level = data.data?.level ?: 0,
                         answered = data.data?.items?.filter { question ->
-                            !question.lastAnswer.isNullOrEmpty() }?.size ?: 0,
+                            !question.report?.answer.isNullOrEmpty()
+                        }?.size ?: 0,
                         questions = data.data?.items?.size ?: 0,
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -103,7 +105,8 @@ fun LessonScreen(
                         QuestionItem(
                             title = "Pertanyaan ${index + 1}",
                             desc = item.question.orEmpty(),
-                            isAnswered = !item.lastAnswer.isNullOrEmpty(),
+                            isAnswered = !item.report?.answer.isNullOrEmpty(),
+                            isCorrect  = item.report?.correct ?: false,
                             isLastItem = index == (data.data.items.size - 1),
                             onClick = {
                                 navigateToQuestion(item.copy(id = index, questionId = data.data.id))
@@ -189,6 +192,7 @@ fun QuestionItem(
     title: String,
     desc: String,
     isAnswered: Boolean,
+    isCorrect: Boolean,
     isLastItem: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -213,15 +217,15 @@ fun QuestionItem(
                         .width(60.dp)
                         .height(60.dp)
                         .background(
-                            color = if (isAnswered) Color(0xFFCDF7E3) else Color(0xFFEEF0F7),
+                            color = if (isAnswered) if (isCorrect) Color(0xFFCDF7E3) else Color(0x99EB4242) else Color(0xFFEEF0F7),
                             shape = CircleShape
                         )
                 ) {
                     if (isAnswered)
                         Icon(
-                            imageVector = Icons.Rounded.Check,
+                            imageVector = if (isCorrect) Icons.Rounded.Check else Icons.Outlined.Close,
                             contentDescription = null,
-                            tint = Color(0xFF59D79A),
+                            tint = if (isCorrect) Color(0xFF59D79A) else Color(0xFFEB4242) ,
                             modifier = Modifier
                                 .align(Alignment.Center)
                                 .size(24.dp)
@@ -257,7 +261,7 @@ fun QuestionItem(
                     modifier = Modifier
                         .height(24.dp)
                         .width(6.dp)
-                        .background(if (isAnswered) Color(0xFFCDF7E3) else Color(0xFFEEF0F7))
+                        .background(if (isAnswered)  if (isCorrect) Color(0xFFCDF7E3) else Color(0x99EB4242) else Color(0xFFEEF0F7))
                         .align(Alignment.Center)
                 )
             }

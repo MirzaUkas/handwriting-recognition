@@ -7,7 +7,7 @@ import kotlinx.parcelize.Parcelize
 data class QuestionEntity(
     val id: Int? = null,
     val questionId: String? = null,
-    val lastAnswer: String? = null,
+    val report: ReportDetailEntity? = null,
     val answer: String? = null,
     val question: String? = null,
 ): Parcelable

@@ -19,12 +19,15 @@ class LoginViewModel @Inject constructor(private val repository: AuthRepository)
         get() = uiState.value.password
 
 
+
     fun onEmailChange(newValue: String) {
-        uiState.value = uiState.value.copy(email = newValue)
+        uiState.value =
+            uiState.value.copy(email = newValue, signInWithGoogleResponse = Response.Idle)
     }
 
     fun onPasswordChange(newValue: String) {
-        uiState.value = uiState.value.copy(password = newValue)
+        uiState.value =
+            uiState.value.copy(password = newValue, signInWithGoogleResponse = Response.Idle)
     }
 
     fun onLogin() = viewModelScope.launch {

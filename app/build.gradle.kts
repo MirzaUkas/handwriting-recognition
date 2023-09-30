@@ -70,6 +70,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material:material")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.1")
 
     // ML Kit
     implementation("com.google.mlkit:digital-ink-recognition:18.1.0")
@@ -88,7 +89,7 @@ dependencies {
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
     implementation("com.google.code.gson:gson:2.10.1")
-
+    implementation("nl.dionsegijn:konfetti-compose:2.0.3")
 
     // Test Libs
     testImplementation("junit:junit:4.13.2")

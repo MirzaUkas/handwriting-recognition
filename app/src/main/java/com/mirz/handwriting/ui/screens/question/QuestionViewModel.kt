@@ -1,7 +1,10 @@
 package com.mirz.handwriting.ui.screens.question
 
+import android.util.Log
+import androidx.compose.runtime.MutableState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.mlkit.vision.digitalink.Ink
 import com.google.mlkit.vision.digitalink.WritingArea
 import com.mirz.handwriting.common.DrawEvent
 import com.mirz.handwriting.common.MLKitModelStatus
@@ -31,32 +34,25 @@ class QuestionViewModel @Inject constructor(
     private val mlKitRepository: MLKitRepository,
     private val questionRepository: QuestionRepository,
 ) : ViewModel(), DigitalInkViewModel {
-
+    private var _strokeBuilder = Ink.Stroke.builder()
+    private val _points = MutableStateFlow(listOf<Ink.Point>())
     private val _finalText = MutableStateFlow("")
     private val _resetCanvas = MutableStateFlow(false)
     private val _pos = MutableStateFlow(0)
     private val _question = MutableStateFlow(QuestionEntity())
     private val _submitResponse = MutableStateFlow(QuestionUiState().submitReportResponse)
+    private val _predictions = mlKitRepository.predictions.consumeAsFlow().onEach {
+        if (it.isEmpty()) return@onEach
 
-    private val _predictions = mlKitRepository.predictions
-        .consumeAsFlow()
-        .onEach {
-            if (it.isEmpty())
-                return@onEach
-
-            setFinalText(text = _finalText.value.plus(it[0]))
-        }
-        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        setFinalText(text = _finalText.value.plus(it[0]))
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val _digitalInkModelStatus = mlKitRepository.checkIfModelIsDownloaded()
-        .flatMapLatest { status ->
-            if (status == MLKitModelStatus.Downloaded)
-                flowOf(status)
-            else
-                mlKitRepository.downloadModel()
-        }
-        .stateIn(viewModelScope, SharingStarted.Lazily, MLKitModelStatus.NotDownloaded)
+    private val _digitalInkModelStatus =
+        mlKitRepository.checkIfModelIsDownloaded().flatMapLatest { status ->
+            if (status == MLKitModelStatus.Downloaded) flowOf(status)
+            else mlKitRepository.downloadModel()
+        }.stateIn(viewModelScope, SharingStarted.Lazily, MLKitModelStatus.NotDownloaded)
 
     override val state: StateFlow<QuestionUiState>
         get() = combine(
@@ -67,6 +63,7 @@ class QuestionViewModel @Inject constructor(
             _pos,
             _question,
             _submitResponse,
+            _points
         ) { result ->
             val digitalInkModelStatus = result[0] as MLKitModelStatus
             val resetCanvas = result[1] as Boolean
@@ -75,6 +72,7 @@ class QuestionViewModel @Inject constructor(
             val pos = result[4] as Int
             val question = result[5] as QuestionEntity
             val submitResponse = result[6] as Response<Any>
+            val points = result[7] as List<Ink.Point>
             val areModelsDownloaded = digitalInkModelStatus == MLKitModelStatus.Downloaded
             QuestionUiState(
                 showModelStatusProgress = !areModelsDownloaded,
@@ -84,6 +82,7 @@ class QuestionViewModel @Inject constructor(
                 question = question,
                 pos = pos,
                 submitReportResponse = submitResponse,
+                points = points,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, QuestionUiState())
 
@@ -115,29 +114,45 @@ class QuestionViewModel @Inject constructor(
         _finalText.value = text
     }
 
+    private fun setPoints(point: Ink.Point) = viewModelScope.launch {
+        _strokeBuilder.addPoint(point)
+        _points.value = _strokeBuilder.build().points
+    }
+
     fun onSubmitReport() = viewModelScope.launch {
         val question = _question.value
 
-       val response = questionRepository.submitQuestion(
+        val response = questionRepository.submitQuestion(
             id = question.questionId.toString(),
             pos = question.id ?: -1,
             correct = question.question == _finalText.value,
-            answer = _finalText.value
+            answer = _finalText.value,
+            points = _points.value
         )
         _submitResponse.value = response
     }
-    
+
     override fun onEvent(event: DigitalInkViewModel.Event) {
         when (event) {
             is DigitalInkViewModel.Event.Pointer -> {
                 when (val drawEvent = event.event) {
                     is DrawEvent.Down -> {
-                        this.finishRecordingJob?.cancel()
+                        finishRecordingJob?.cancel()
                         _resetCanvas.value = false
+                        setPoints(
+                            Ink.Point.create(
+                                drawEvent.x, drawEvent.y
+                            )
+                        )
                         mlKitRepository.record(drawEvent.x, drawEvent.y)
                     }
 
                     is DrawEvent.Move -> {
+                        setPoints(
+                            Ink.Point.create(
+                                drawEvent.x, drawEvent.y
+                            )
+                        )
                         mlKitRepository.record(drawEvent.x, drawEvent.y)
                     }
 
@@ -168,8 +183,7 @@ class QuestionViewModel @Inject constructor(
 }
 
 
-interface DigitalInkViewModel :
-    SingleFlowViewModel<DigitalInkViewModel.Event, QuestionUiState> {
+interface DigitalInkViewModel : SingleFlowViewModel<DigitalInkViewModel.Event, QuestionUiState> {
 
     sealed class Event {
         data class TextChanged(val text: String) : Event()

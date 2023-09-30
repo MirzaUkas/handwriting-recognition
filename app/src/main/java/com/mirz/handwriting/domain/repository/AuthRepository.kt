@@ -8,4 +8,6 @@ typealias SignInWithGoogleResponse = Response<UserEntity>
 interface AuthRepository {
     val isUserAuthenticatedInFirebase: Boolean
     suspend fun firebaseSignIn(email: String, password: String): SignInWithGoogleResponse
+    suspend fun getUserData(): Response<UserEntity>
+    suspend fun logout(): Response<Boolean>
 }

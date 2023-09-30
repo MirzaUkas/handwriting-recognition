@@ -3,6 +3,7 @@ package com.mirz.handwriting.ui.screens.login
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,15 +31,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -56,6 +62,7 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState
     val context = LocalContext.current
+    val (isObscure, setObscure) = remember { mutableStateOf(true) }
     Surface(
         color = Purple40
     ) {
@@ -71,8 +78,7 @@ fun LoginScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Belajar Menulis",
-                    style = typography.h3
+                    text = "Belajar Menulis", style = typography.h3
                 )
                 Image(
                     painter = painterResource(id = R.drawable.il_people),
@@ -80,10 +86,8 @@ fun LoginScreen(
                     modifier = Modifier.padding(top = 16.dp)
                 )
                 Column(
-                    modifier = Modifier
-                        .background(
-                            color = Color.White,
-                            shape = RoundedCornerShape(16.dp)
+                    modifier = Modifier.background(
+                            color = Color.White, shape = RoundedCornerShape(16.dp)
                         )
                 ) {
                     Text(
@@ -131,12 +135,18 @@ fun LoginScreen(
                         },
                         trailingIcon = {
                             Icon(
-                                imageVector = Icons.Outlined.Visibility,
+                                imageVector = if (isObscure) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                 contentDescription = "Password",
-                                tint = colors.primary
+                                tint = colors.primary,
+                                modifier = Modifier.clickable { setObscure(!isObscure) }
                             )
                         },
                         shape = RoundedCornerShape(20.dp),
+                        visualTransformation = if (isObscure) {
+                            PasswordVisualTransformation()
+                        } else {
+                            VisualTransformation.None
+                        },
                         colors = TextFieldDefaults.outlinedTextFieldColors(
                             backgroundColor = Purple30.copy(alpha = 0.5f),
                             unfocusedBorderColor = Color.White,
@@ -172,9 +182,7 @@ fun LoginScreen(
                 )
 
                 is Response.Failure -> Toast.makeText(
-                    context,
-                    data.e.localizedMessage,
-                    Toast.LENGTH_SHORT
+                    context, data.e.localizedMessage, Toast.LENGTH_SHORT
                 ).show()
 
                 else -> Unit
@@ -189,18 +197,15 @@ fun LoginScreen(
 @Composable
 fun LoginOptions() {
     Column {
-        Button(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+        Button(modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
             colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color.White,
-                contentColor = Color.Black
+                backgroundColor = Color.White, contentColor = Color.Black
             ),
             shape = RoundedCornerShape(20.dp),
             contentPadding = PaddingValues(16.dp),
-            onClick = { /*TODO*/ }
-        ) {
+            onClick = { /*TODO*/ }) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_google),
                 tint = Color.Unspecified,
@@ -210,18 +215,15 @@ fun LoginOptions() {
             Text("Login with Google", style = typography.button)
         }
 
-        Button(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+        Button(modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
             colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color(0xFF0056B2),
-                contentColor = colors.onPrimary
+                backgroundColor = Color(0xFF0056B2), contentColor = colors.onPrimary
             ),
             shape = RoundedCornerShape(20.dp),
             contentPadding = PaddingValues(16.dp),
-            onClick = { /*TODO*/ }
-        ) {
+            onClick = { /*TODO*/ }) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_facebook),
                 contentDescription = "Facebook Icon",

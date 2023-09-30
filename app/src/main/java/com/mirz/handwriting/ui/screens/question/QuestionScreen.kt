@@ -1,5 +1,6 @@
 package com.mirz.handwriting.ui.screens.question
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -37,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -57,7 +59,14 @@ import com.mirz.handwriting.ui.components.ModelStatusProgress
 import com.mirz.handwriting.ui.theme.Grey7F
 import com.mirz.handwriting.ui.theme.dashedFamily
 import com.mirz.handwriting.ui.theme.typography
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import nl.dionsegijn.konfetti.compose.KonfettiView
+import nl.dionsegijn.konfetti.core.Angle
+import nl.dionsegijn.konfetti.core.Party
+import nl.dionsegijn.konfetti.core.Position
+import nl.dionsegijn.konfetti.core.emitter.Emitter
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -94,9 +103,17 @@ fun QuestionScreen(
             viewModel.onSubmitReport()
     }
 
-    LaunchedEffect(state.submitReportResponse){
-        when(state.submitReportResponse){
-            is Response.Success -> coroutineScope.launch { modalSheetState.show() }
+    LaunchedEffect(state.submitReportResponse) {
+        when (state.submitReportResponse) {
+            is Response.Success -> coroutineScope.launch {
+                modalSheetState.show()
+                if (state.finalText == state.question.question) {
+                    delay(1000L)
+                    modalSheetState.hide()
+                    navigateBack()
+                }
+            }
+
             else -> Unit
         }
     }
@@ -152,7 +169,7 @@ fun QuestionScreen(
                             .padding(horizontal = 16.dp)
                             .border(BorderStroke(1.dp, Color.Red))
                             .align(Alignment.Center)
-                            .padding(bottom = 20.dp)
+                            .clipToBounds()
                     )
                     Box(
                         modifier = Modifier
@@ -236,7 +253,11 @@ fun QuestionScreen(
                             .padding(vertical = 6.dp, horizontal = 16.dp)
                             .align(Alignment.TopCenter)
                     ) {
-                        Text(text = "Pertanyaan ${state.pos + 1}", color = Color.White, style = typography.body1)
+                        Text(
+                            text = "Pertanyaan ${state.pos + 1}",
+                            color = Color.White,
+                            style = typography.body1
+                        )
                     }
                 }
 
@@ -267,6 +288,20 @@ fun CorrectAnswerBottomSheet() {
             Text(text = "Perfect!", style = typography.h3.copy(color = Color.Black))
         }
 
+        KonfettiView(
+            parties = listOf(
+                Party(
+                    speed = 0f,
+                    maxSpeed = 30f,
+                    damping = 0.9f,
+                    spread = 360,
+                    colors = listOf(0xfce18a, 0xff726d, 0xf4306d, 0xb48def),
+                    emitter = Emitter(duration = 100, TimeUnit.MILLISECONDS).max(100),
+                    position = Position.Relative(0.5, 0.3)
+                )
+            ),
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 

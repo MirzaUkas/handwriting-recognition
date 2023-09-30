@@ -106,9 +106,6 @@ fun HomeScreen(
 
             }
 
-            LaunchedEffect(uiState.resultLessons){
-                Log.e("HERE", "RES: ${uiState.resultLessons}")
-            }
             when (val data = uiState.resultLessons) {
                 is Response.Success -> {
                     data.data?.let { lessons ->

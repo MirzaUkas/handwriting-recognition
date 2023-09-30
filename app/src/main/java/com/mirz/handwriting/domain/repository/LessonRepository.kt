@@ -7,4 +7,6 @@ interface LessonRepository {
 
     suspend fun getLessons(): Response<List<LessonEntity>>
     suspend fun getLesson(id: String): Response<LessonEntity>
+    suspend fun getReport(): Response<List<LessonEntity>>
+
 }

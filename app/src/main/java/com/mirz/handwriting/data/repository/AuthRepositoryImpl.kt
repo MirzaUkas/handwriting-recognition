@@ -19,12 +19,12 @@ class AuthRepositoryImpl @Inject constructor(
 
     override val isUserAuthenticatedInFirebase = auth.currentUser != null
 
-
     override suspend fun firebaseSignIn(email: String, password: String): SignInWithGoogleResponse {
         return try {
             val result = auth.signInWithEmailAndPassword(email, password).await()
-            val user = firestore.collection("user").document(result.user?.uid.toString()).get()
-                .await().toObject(UserEntity::class.java)
+            val user =
+                firestore.collection("user").document(result.user?.uid.toString()).get().await()
+                    .toObject(UserEntity::class.java)
 
             if (user?.role == "mentee") {
                 Response.Success(user)
@@ -32,6 +32,25 @@ class AuthRepositoryImpl @Inject constructor(
                 auth.signOut()
                 Response.Failure(Exception("Anda tidak memiliki akses"))
             }
+        } catch (e: Exception) {
+            Response.Failure(e)
+        }
+    }
+
+    override suspend fun getUserData(): Response<UserEntity> {
+        return try {
+            val user = firestore.collection("user").document(auth.currentUser?.uid.toString()).get()
+                .await().toObject(UserEntity::class.java)
+            Response.Success(user)
+        } catch (e: Exception) {
+            Response.Failure(e)
+        }
+    }
+
+    override suspend fun logout(): Response<Boolean> {
+        return try {
+            auth.signOut()
+            Response.Success(!isUserAuthenticatedInFirebase)
         } catch (e: Exception) {
             Response.Failure(e)
         }
