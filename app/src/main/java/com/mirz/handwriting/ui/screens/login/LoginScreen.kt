@@ -24,6 +24,11 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme.colors
 import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.Scaffold
+import androidx.compose.material.Snackbar
+import androidx.compose.material.SnackbarDuration
+import androidx.compose.material.SnackbarHost
+import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldDefaults
@@ -37,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -53,7 +59,9 @@ import com.mirz.handwriting.common.Response
 import com.mirz.handwriting.ui.theme.NeutralGrey
 import com.mirz.handwriting.ui.theme.Purple30
 import com.mirz.handwriting.ui.theme.Purple40
+import com.mirz.handwriting.ui.theme.Red42
 import com.mirz.handwriting.ui.theme.typography
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -63,11 +71,32 @@ fun LoginScreen(
     val uiState by viewModel.uiState
     val context = LocalContext.current
     val (isObscure, setObscure) = remember { mutableStateOf(true) }
-    Surface(
-        color = Purple40
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+            ){
+                Snackbar(
+                    modifier = Modifier.padding(16.dp),
+                    backgroundColor = Red42,
+                    contentColor = Color.White,
+                ) {
+                    Text(
+                        text = it.message,
+                        style = typography.body1,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+        },
+        backgroundColor = Purple40
     ) {
         Box(
             modifier = Modifier
+                .padding(it)
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
@@ -87,8 +116,8 @@ fun LoginScreen(
                 )
                 Column(
                     modifier = Modifier.background(
-                            color = Color.White, shape = RoundedCornerShape(16.dp)
-                        )
+                        color = Color.White, shape = RoundedCornerShape(16.dp)
+                    )
                 ) {
                     Text(
                         text = "Login",
@@ -181,9 +210,14 @@ fun LoginScreen(
 
                 )
 
-                is Response.Failure -> Toast.makeText(
-                    context, data.e.localizedMessage, Toast.LENGTH_SHORT
-                ).show()
+                is Response.Failure -> {
+                    LaunchedEffect(Unit){
+                        snackbarHostState.showSnackbar(
+                            data.e.localizedMessage.orEmpty(),
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
 
                 else -> Unit
             }

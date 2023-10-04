@@ -18,11 +18,8 @@ class HomeViewModel @Inject constructor(private val repository: LessonRepository
         private set
 
 
-    init {
-        getLessons()
-    }
 
-    private fun getLessons()  = viewModelScope.launch {
+    fun getLessons()  = viewModelScope.launch {
         uiState.value = uiState.value.copy(resultLessons = Response.Loading)
         val result = repository.getLessons()
         uiState.value = uiState.value.copy(resultLessons = result)

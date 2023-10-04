@@ -8,18 +8,23 @@ import com.mirz.handwriting.common.Response
 import com.mirz.handwriting.domain.entities.LessonEntity
 import com.mirz.handwriting.domain.entities.ReportDetailEntity
 import com.mirz.handwriting.domain.entities.ReportEntity
+import com.mirz.handwriting.domain.entities.UserEntity
 import com.mirz.handwriting.domain.repository.LessonRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class LessonRepositoryImpl @Inject constructor(
-    private val firestore: FirebaseFirestore, private val auth: FirebaseAuth
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
 ) : LessonRepository {
     override suspend fun getLessons(): Response<List<LessonEntity>> {
         val response: Response<List<LessonEntity>> = try {
             Response.Loading
-            val res = firestore.collection("question").get().await().map {
+            val user = firestore.collection("user").document(auth.currentUser?.uid.toString()).get()
+                .await().toObject(UserEntity::class.java)
+
+            val res = firestore.collection("question").whereEqualTo("createdBy", user?.mentor).get().await().map {
                 it.toObject(LessonEntity::class.java).copy(id = it.id)
             }.sortedBy { it.level }
             Response.Success(res)
@@ -65,8 +70,12 @@ class LessonRepositoryImpl @Inject constructor(
     override suspend fun getReport(): Response<List<LessonEntity>> {
         val response: Response<List<LessonEntity>> = try {
             val updatedLessons = mutableListOf<LessonEntity>()
+            // Get User
+            val user = firestore.collection("user").document(auth.currentUser?.uid.toString()).get()
+                .await().toObject(UserEntity::class.java)
+
             // Get Questions
-            firestore.collection("question").get().await().map {
+            firestore.collection("question").whereEqualTo("createdBy", user?.mentor).get().await().map {
                 it.toObject(LessonEntity::class.java).copy(id = it.id)
             }.forEachIndexed { index, lesson ->
                 // Get Reports

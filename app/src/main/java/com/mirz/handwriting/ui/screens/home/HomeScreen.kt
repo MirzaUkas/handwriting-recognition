@@ -26,9 +26,13 @@ import androidx.compose.material.ButtonColors
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme.colors
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +61,7 @@ import com.mirz.handwriting.ui.theme.PurpleGrey40
 import com.mirz.handwriting.ui.theme.typography
 
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
@@ -64,7 +69,12 @@ fun HomeScreen(
     navigateToLesson: (String) -> Unit
 ) {
     val uiState by viewModel.uiState
+    val pullRefreshState =
+        rememberPullRefreshState(uiState.resultLessons is Response.Loading, onRefresh = viewModel::getLessons)
 
+    LaunchedEffect(Unit){
+        viewModel.getLessons()
+    }
     Scaffold(
         bottomBar = {
             AnimatedVisibility(
@@ -76,71 +86,86 @@ fun HomeScreen(
             }
         }
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        Box(
             modifier = Modifier
                 .padding(it)
-                .padding(16.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .pullRefresh(pullRefreshState)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp)
+                    .padding(16.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
             ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_logo),
-                    contentDescription = "Logo",
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .width(50.dp)
-                        .height(50.dp)
-                )
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_logo),
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .width(50.dp)
+                            .height(50.dp)
+                    )
 
-                Text(
-                    text = "Belajar Menulis",
-                    style = typography.h3.copy(color = PurpleGrey40),
-                )
+                    Text(
+                        text = "Belajar Menulis",
+                        style = typography.h3.copy(color = PurpleGrey40),
+                    )
 
-            }
+                }
 
-            when (val data = uiState.resultLessons) {
-                is Response.Success -> {
-                    data.data?.let { lessons ->
-                        lessons.forEach { lesson ->
-                            LessonItem(
-                                name = lesson.title.orEmpty(),
-                                level = lesson.level ?: 0,
-                                questions = lesson.items.orEmpty(),
-                                onStart = if (lesson.active == true) {
-                                    {
-                                        navigateToLesson(lesson.id.toString())
-                                    }
-                                } else null
-                            )
+
+                when (val data = uiState.resultLessons) {
+                    is Response.Success -> {
+                        data.data?.let { lessons ->
+                            lessons.forEach { lesson ->
+                                LessonItem(
+                                    name = lesson.title.orEmpty(),
+                                    level = lesson.level ?: 0,
+                                    questions = lesson.items.orEmpty(),
+                                    onStart = if (lesson.active == true) {
+                                        {
+                                            navigateToLesson(lesson.id.toString())
+                                        }
+                                    } else null
+                                )
+                            }
+
                         }
-
                     }
+
+                    is Response.Loading -> {
+                        LessonShimmer()
+                        LessonShimmer()
+                        LessonShimmer()
+                    }
+
+                    is Response.Failure -> Toast.makeText(
+                        LocalContext.current,
+                        data.e.localizedMessage,
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    else -> Unit
                 }
 
-                is Response.Loading -> {
-                    LessonShimmer()
-                    LessonShimmer()
-                    LessonShimmer()
-                }
-
-                is Response.Failure -> Toast.makeText(
-                    LocalContext.current,
-                    data.e.localizedMessage,
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                else -> Unit
             }
+
+            PullRefreshIndicator(
+                uiState.resultLessons is Response.Loading,
+                pullRefreshState,
+                Modifier.align(Alignment.TopCenter)
+            )
 
         }
+
     }
 }
 

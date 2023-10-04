@@ -5,9 +5,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.mlkit.vision.digitalink.Ink
 import com.mirz.handwriting.common.Response
+import com.mirz.handwriting.domain.entities.LessonEntity
 import com.mirz.handwriting.domain.entities.PointEntity
 import com.mirz.handwriting.domain.entities.ReportDetailEntity
 import com.mirz.handwriting.domain.entities.ReportEntity
+import com.mirz.handwriting.domain.entities.UserEntity
 import com.mirz.handwriting.domain.repository.QuestionRepository
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -22,6 +24,10 @@ class QuestionRepositoryImpl @Inject constructor(
         val response: Response<Any> = try {
             Response.Loading
             val answers = mutableListOf<ReportDetailEntity>()
+            val user = firestore.collection("user").document(auth.currentUser?.uid.toString()).get()
+                .await().toObject(UserEntity::class.java)
+
+            // Add or Update Report
             auth.uid?.let { uid ->
                 firestore.collection("report").document(uid).collection("answered_question")
                     .document(id)
@@ -43,8 +49,6 @@ class QuestionRepositoryImpl @Inject constructor(
                         },
                         retryCount = if (!correct) retryCount + 1 else retryCount,
                     )
-
-
                 } else {
                     answers.add(
                         pos, ReportDetailEntity(
@@ -54,9 +58,29 @@ class QuestionRepositoryImpl @Inject constructor(
                             points = points.map {
                                 PointEntity(it.x, it.y)
                             },
-                            retryCount = if (!correct) 1 else 0,
+                            retryCount = 1,
                         )
                     )
+                }
+                // Activate Next Level
+                val questions =
+                    firestore.collection("question").whereEqualTo("createdBy", user?.mentor).get()
+                        .await().map {
+                            it.toObject(LessonEntity::class.java).copy(id = it.id)
+                        }.sortedBy { it.level }
+                val isFinished = pos + 1 == answers.size
+                if (isFinished && correct) {
+                    questions.forEachIndexed { index, lessonEntity ->
+                        if (lessonEntity.id == id) {
+                            if (index + 1 < questions.size) {
+                                questions[index + 1].id?.let {
+                                    firestore.collection("question").document(it).update(
+                                        "active", true
+                                    ).await()
+                                }
+                            }
+                        }
+                    }
                 }
 
                 firestore.collection("report").document(uid).collection("answered_question")
