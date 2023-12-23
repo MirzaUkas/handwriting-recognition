@@ -68,14 +68,20 @@ class QuestionRepositoryImpl @Inject constructor(
                         .await().map {
                             it.toObject(LessonEntity::class.java).copy(id = it.id)
                         }.sortedBy { it.level }
+
                 val isFinished = pos + 1 == answers.size
+
                 if (isFinished && correct) {
+//                    firestore.collection("user").document(auth.currentUser?.uid.toString()).update(
+//                        "finished", user?.finished?.plus(id)
+//                    ).await()
                     questions.forEachIndexed { index, lessonEntity ->
                         if (lessonEntity.id == id) {
                             if (index + 1 < questions.size) {
-                                questions[index + 1].id?.let {
-                                    firestore.collection("question").document(it).update(
-                                        "active", true
+                                questions[index + 1].id?.let { id ->
+                                    val finished = if(user?.finished?.contains(id) == false) user.finished.plus(id) else user?.finished
+                                    firestore.collection("user").document(auth.currentUser?.uid.toString()).update(
+                                        "finished", finished
                                     ).await()
                                 }
                             }

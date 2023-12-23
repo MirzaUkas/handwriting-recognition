@@ -25,7 +25,7 @@ class LessonRepositoryImpl @Inject constructor(
                 .await().toObject(UserEntity::class.java)
 
             val res = firestore.collection("question").whereEqualTo("createdBy", user?.mentor).get().await().map {
-                it.toObject(LessonEntity::class.java).copy(id = it.id)
+                it.toObject(LessonEntity::class.java).copy(id = it.id, active = user?.finished?.contains(it.id))
             }.sortedBy { it.level }
             Response.Success(res)
         } catch (e: FirebaseFirestoreException) {

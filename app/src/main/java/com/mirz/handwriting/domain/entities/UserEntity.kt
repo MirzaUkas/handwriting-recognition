@@ -5,4 +5,5 @@ data class UserEntity(
     val fullName: String? = null,
     val role: String? = null,
     val mentor: String? = null,
+    val finished: List<String>? = null,
 )

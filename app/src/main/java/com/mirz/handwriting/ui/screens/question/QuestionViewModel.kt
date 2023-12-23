@@ -100,6 +100,7 @@ class QuestionViewModel @Inject constructor(
 
     fun submit(writingArea: WritingArea) {
         this.finishRecordingJob = viewModelScope.launch {
+            Log.e("HERE", _finalText.value)
             _resetCanvas.value = true
             _finalText.value = ""
             mlKitRepository.finishRecording(writingArea, "")
@@ -121,7 +122,6 @@ class QuestionViewModel @Inject constructor(
 
     fun onSubmitReport() = viewModelScope.launch {
         val question = _question.value
-
         val response = questionRepository.submitQuestion(
             id = question.questionId.toString(),
             pos = question.id ?: -1,
